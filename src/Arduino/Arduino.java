@@ -12,7 +12,7 @@ public class Arduino {
     public static String leerSerial() {
         try {
             if (puerto == null) {
-                puerto = SerialPort.getCommPort("COM5");
+                puerto = SerialPort.getCommPort("COM7");
                 puerto.setBaudRate(9600);
                 puerto.setComPortTimeouts(
                         SerialPort.TIMEOUT_READ_SEMI_BLOCKING,
