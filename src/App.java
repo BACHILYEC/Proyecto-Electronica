@@ -1,4 +1,3 @@
-import Arduino.Arduino;
 import Pantallas.Main;
 
 public class App {
