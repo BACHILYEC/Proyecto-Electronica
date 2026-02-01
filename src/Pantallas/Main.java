@@ -1,11 +1,11 @@
 package Pantallas;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicProgressBarUI;
 
 import Arduino.Arduino;
 
 import java.awt.*;
-import java.lang.foreign.AddressLayout;
 
 public class Main {
 
@@ -14,6 +14,7 @@ public class Main {
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         JPanel Panelsuperior = Panelsuperior();
         JPanel PanelMitad = PanelCentral();
+        PanelMitad.setBorder(BorderFactory.createEmptyBorder(150, 50, 50, 50));
         mainPanel.add(Panelsuperior);
         mainPanel.add(PanelMitad);
         return mainPanel;
@@ -44,39 +45,83 @@ public class Main {
     public static JPanel PanelCentral() {
         JPanel PanelCentral = new JPanel(new BorderLayout());
         PanelCentral.setOpaque(false);
-        JPanel barra = new JPanel();
-        barra.setOpaque(false);
-        JProgressBar barraProgreso = new JProgressBar(0, 1000);
+
+        JProgressBar barraProgreso = new JProgressBar(0, 100);
         barraProgreso.setOpaque(false);
         barraProgreso.setOrientation(JProgressBar.VERTICAL);
-        barraProgreso.setBorderPainted(false);
-        barraProgreso.setBorder(BorderFactory.createEmptyBorder(0, 100, 0, 0));
+        applyCleanProgressBarUI(barraProgreso);
+        barraProgreso.setBorder(BorderFactory.createEmptyBorder(0, 100, 10, 0));
+        PanelCentral.add(barraProgreso, BorderLayout.WEST);
+
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setOpaque(false);
+
+        JPanel temperaturaPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JLabel temperatura = new JLabel("Temperatura Actual: ");
+        temperatura.setFont(new Font("COMICS SANS MS", Font.BOLD, 20));
+        temperatura.setForeground(Color.white);
+        temperaturaPanel.setOpaque(false);
+        temperaturaPanel.add(temperatura);
+
+        JPanel datoTemperaturaPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JLabel datoTemperatura = new JLabel();
+        datoTemperatura.setForeground(Color.white);
+        datoTemperaturaPanel.setOpaque(false);
+        datoTemperaturaPanel.add(datoTemperatura);
+
+        infoPanel.add(temperaturaPanel);
+        infoPanel.add(datoTemperaturaPanel);
+        PanelCentral.add(infoPanel, BorderLayout.CENTER);
+
         Thread ard = new Thread(() -> {
             while (true) {
                 String arduino = Arduino.leerSerial();
                 if (arduino != null) {
-                    int value = Integer.parseInt(arduino);
-                    colorBar(value, barraProgreso);
+                    try {
+                        float x = Float.parseFloat(arduino.trim());
+                        int value = (int) x;
+
+                        SwingUtilities.invokeLater(() -> {
+                            colorBar(value, barraProgreso);
+                            barraProgreso.setValue(value);
+                            datoTemperatura.setFont(new Font("COMICS SANS MS", Font.BOLD, 48));
+                            datoTemperatura.setText(x + " °C");
+                        });
+                        Thread.sleep(500);
+                    } catch (NumberFormatException e) {
+                        System.err.println("Error: " + arduino);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                } else if (arduino == null) {
                     SwingUtilities.invokeLater(() -> {
-                        barraProgreso.setValue(value);
-                        System.out.println(value);
+                        colorBar(0, barraProgreso);
+                        barraProgreso.setValue(0);
+                        datoTemperatura.setFont(new Font("COMICS SANS MS", Font.BOLD, 18));
+                        datoTemperatura.setText("Conecte el sensor \n por favor");
                     });
-                } else {
-                    System.out.println("Nadita");
+                }
+
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    break;
                 }
             }
         });
+
+        ard.setDaemon(true);
         ard.start();
-        PanelCentral.add(barraProgreso, BorderLayout.WEST);
 
         return PanelCentral;
     }
 
     public static void colorBar(int valor, JProgressBar barra) {
         if (valor <= 25) {
-            barra.setForeground(new Color(0, 153, 255));
-        } else if (valor <= 50) {
             barra.setForeground(new Color(0, 200, 0));
+        } else if (valor <= 50) {
+            barra.setForeground(new Color(0, 153, 255));
         } else if (valor <= 75) {
             barra.setForeground(new Color(255, 165, 0));
         } else {
@@ -92,4 +137,31 @@ public class Main {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
+
+    public static void applyCleanProgressBarUI(JProgressBar progressBar) {
+        progressBar.setUI(new BasicProgressBarUI() {
+            @Override
+            protected void paintDeterminate(Graphics g, JComponent c) {
+                Insets insets = progressBar.getInsets();
+                int width = progressBar.getWidth() - insets.left - insets.right;
+                int height = progressBar.getHeight() - insets.top - insets.bottom;
+
+                int amountFull = getAmountFull(insets, width, height);
+
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(progressBar.getForeground());
+
+                int y = insets.top + height - amountFull;
+
+                g2.fillRect(
+                        insets.left,
+                        y,
+                        width,
+                        amountFull);
+
+                g2.dispose();
+            }
+        });
+    }
+
 }
