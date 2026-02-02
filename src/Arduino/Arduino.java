@@ -12,20 +12,25 @@ public class Arduino {
     public static String leerSerial() {
         try {
             if (puerto == null || !puerto.isOpen()) {
-                puerto = SerialPort.getCommPort("COM5");
-                puerto.setBaudRate(9600);
-                puerto.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 100, 0);
+                SerialPort[] puertosDisponibles = SerialPort.getCommPorts();
 
-                if (puerto.openPort()) {
-                    reader = new BufferedReader(new InputStreamReader(puerto.getInputStream()));
-                } else {
-                    puerto = null;
-                    return null;
+                for (SerialPort p : puertosDisponibles) {
+                    p.setBaudRate(9600);
+                    p.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 100, 0);
+
+                    if (p.openPort()) {
+                        puerto = p;
+                        reader = new BufferedReader(new InputStreamReader(puerto.getInputStream()));
+                        break;
+                    }
                 }
+
+                if (puerto == null)
+                    return null;
             }
 
             if (puerto.bytesAvailable() < 0) {
-                throw new Exception("Puerto desconectado");
+                throw new Exception("Desconectado");
             }
 
             if (puerto.bytesAvailable() > 0) {
@@ -36,6 +41,10 @@ public class Arduino {
             resetearConexion();
         }
         return null;
+    }
+
+    public static boolean estaConectado() {
+        return puerto != null && puerto.isOpen();
     }
 
     private static void resetearConexion() {
