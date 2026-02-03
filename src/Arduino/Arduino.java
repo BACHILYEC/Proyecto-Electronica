@@ -33,7 +33,7 @@ public class Arduino {
             }
 
             if (puerto.bytesAvailable() < 0) {
-                throw new Exception("Puerto desconectado");
+                throw new Exception("Desconectado");
             }
 
             if (puerto.bytesAvailable() > 0) {
@@ -44,6 +44,10 @@ public class Arduino {
             resetearConexion();
         }
         return null;
+    }
+
+    public static boolean estaConectado() {
+        return puerto != null && puerto.isOpen();
     }
 
     private static void resetearConexion() {
