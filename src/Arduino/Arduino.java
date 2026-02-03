@@ -12,16 +12,24 @@ public class Arduino {
     public static String leerSerial() {
         try {
             if (puerto == null || !puerto.isOpen()) {
-                puerto = SerialPort.getCommPort("COM5");
-                puerto.setBaudRate(9600);
-                puerto.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 100, 0);
 
-                if (puerto.openPort()) {
-                    reader = new BufferedReader(new InputStreamReader(puerto.getInputStream()));
-                } else {
-                    puerto = null;
-                    return null;
+                SerialPort[] puertos = SerialPort.getCommPorts();
+
+                for (SerialPort p : puertos) {
+                    p.setBaudRate(9600);
+                    p.setComPortTimeouts(
+                            SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 100, 0);
+
+                    if (p.openPort()) {
+                        puerto = p;
+                        reader = new BufferedReader(
+                                new InputStreamReader(puerto.getInputStream()));
+                        break;
+                    }
                 }
+
+                if (puerto == null)
+                    return null;
             }
 
             if (puerto.bytesAvailable() < 0) {
